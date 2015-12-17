@@ -31,6 +31,7 @@ int switchState; //0 -> switch off, 1 -> switch on
 TimeElements time;
 TimeElements openAlarm;
 TimeElements closeAlarm;
+time_t timeOut;
 
 machine_state_t machineState;
 set_time_state_t setState;
@@ -92,10 +93,15 @@ void loop()
       {
          machineState = SET;
          setState = OPEN_HOUR;
+         timeOut = now();
          delay(500);
       }
       break;
     case SET:
+      if (now() - timeOut > 60)
+      {
+        machineState = READY;
+      }
       switch(setState)
       {
         case OPEN_HOUR:
@@ -108,7 +114,8 @@ void loop()
           if (digitalRead(setButton_p))
           {
             setState = OPEN_MINUTE;
-            delay(500); 
+            timeOut = now();
+            delay(500);
           }
           break;
           
@@ -122,6 +129,7 @@ void loop()
           if (digitalRead(setButton_p))
           {
             setState = CLOSE_HOUR;
+            timeOut = now();
             delay(500); 
           }
           break;
@@ -136,6 +144,7 @@ void loop()
           if (digitalRead(setButton_p))
           {
             setState = CLOSE_MINUTE;
+            timeOut = now();
             delay(500); 
           }
           break;
@@ -149,16 +158,40 @@ void loop()
           }
           if (digitalRead(setButton_p))
           {
-            setState = OPEN_HOUR;
+            setState = TIME_HOUR;
+            timeOut = now();
             delay(500); 
           }
           break;
-          
-        default:
-          lcd.clear();
-          lcd.begin(16, 2);
-          lcd.print("in default set state");
-          delay(1000);
+
+        case TIME_HOUR:
+          lcdShowTime("Time: ",closeAlarm,"SETTING HOUR");
+          if (digitalRead(selectButton_p)==HIGH)
+          {
+            time.Minute += 1;
+            delay(250);
+          }
+          if (digitalRead(setButton_p))
+          {
+            setState = TIME_MINUTE;
+            timeOut = now();
+            delay(500); 
+          }
+          break;
+
+        case TIME_MINUTE:
+          lcdShowTime("Time: ",time,"SETTING MINUTE");
+          if (digitalRead(selectButton_p)==HIGH)
+          {
+            closeAlarm.Minute += 1;
+            delay(250);
+          }
+          if (digitalRead(setButton_p))
+          {
+            setTime(makeTime(time));
+            machineState = READY;
+            delay(500); 
+          }
           break;
       }
       break;

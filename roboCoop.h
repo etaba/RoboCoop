@@ -19,7 +19,9 @@ typedef enum set_time_state {
   OPEN_HOUR,
   OPEN_MINUTE,
   CLOSE_HOUR,
-  CLOSE_MINUTE
+  CLOSE_MINUTE,
+  TIME_HOUR,
+  TIME_MINUTE
 } set_time_state_t;
 
 typedef struct alarm {
