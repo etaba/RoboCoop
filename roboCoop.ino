@@ -5,18 +5,18 @@
 #include "roboCoop.h"
 #include <LiquidCrystal.h>
 
-//inputs
+//inputs (switches)
 int switch_p = A3; //D2
 int doorStop_p = A4; //D3
 int setButton_p = 2;
 int selectButton_p = 3;
 
-//outputs
+//outputs (to actuators)
 int solenoidEn_p = A2;
 int motorDirection_p = 5; //0 -> counter-clockwise, 1 -> clockwise
 int motorEn_p = 13;
 
-//LCD
+//LCD pins
 int d4_p = 11;
 int d5_p = 6;
 int d6_p = 12;
@@ -24,6 +24,7 @@ int d7_p = 7;
 int rs_p = 8;
 int en_p = 10;
 int rw_p = 9;
+
 LiquidCrystal lcd(rs_p, en_p, d4_p, d5_p, d6_p, d7_p); 
 String currScreen;
 
@@ -44,19 +45,17 @@ void setup()
 {
   pinMode(motorDirection_p,OUTPUT);
   pinMode(motorEn_p, OUTPUT);
-  pinMode(switch_p, INPUT);
   pinMode(solenoidEn_p,OUTPUT);
-  pinMode(setButton_p,INPUT);
-  pinMode(selectButton_p,INPUT);
   pinMode(rw_p,OUTPUT);
   
+  pinMode(switch_p, INPUT);
+  pinMode(setButton_p,INPUT);
+  pinMode(selectButton_p,INPUT);
+
   digitalWrite(motorEn_p, LOW);
   digitalWrite(motorDirection_p,LOW);
   digitalWrite(solenoidEn_p,LOW);
   digitalWrite(rw_p,LOW);
-  
-  doorState = LOW;
-  machineState = READY;
   
   //DEFAULT time and alarms?
   time.Second = 0;
@@ -66,10 +65,14 @@ void setup()
   time.Month = 1;
   time.Year = 46;
   setTime(makeTime(time));
+  
   openAlarm.Hour = 8;
   openAlarm.Minute = 0;
   closeAlarm.Hour = 18;
   closeAlarm.Minute = 30;
+
+  doorState = LOW;
+  machineState = READY;
 }
 
 
@@ -174,7 +177,7 @@ void loop()
           lcdShowTime("Time: ",closeAlarm,"SETTING HOUR");
           if (digitalRead(selectButton_p)==HIGH)
           {
-            time.Minute += 1;
+            time.Hour += 1;
             delay(250);
           }
           if (digitalRead(setButton_p))
@@ -189,7 +192,7 @@ void loop()
           lcdShowTime("Time: ",time,"SETTING MINUTE");
           if (digitalRead(selectButton_p)==HIGH)
           {
-            closeAlarm.Minute += 1;
+            time.Minute += 1;
             delay(250);
           }
           if (digitalRead(setButton_p))
