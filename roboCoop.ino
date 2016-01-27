@@ -78,6 +78,23 @@ void setup()
 
 void loop()
 {
+  if(True)
+  {
+    digitalWrite(motorDirection_p,UP);
+    digitalWrite(motorEn_p,HIGH);
+    delay(1000);
+    digitalWrite(motorEn_p,LOW);
+    
+    delay(5000);
+    
+    digitalWrite(motorDirection_p,DOWN);
+    digitalWrite(motorEn_p,HIGH);
+    delay(1000);
+    digitalWrite(motorEn_p,LOW);
+    
+    delay(10000);
+  }
+  else
   switch(machineState)
   {
     case READY:
@@ -250,7 +267,7 @@ String formatTime(int hour, int minute)
   return dispHour + ":" + dispMinute;
 }
 
-void operateDoor(int state) //assuming door open and close takes same amount of time
+void operateDoor(int state) 
 {
   digitalWrite(motorDirection_p, !state);
   if (state) //opening door
