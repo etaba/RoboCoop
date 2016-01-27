@@ -78,7 +78,7 @@ void setup()
 
 void loop()
 {
-  if(True)
+  if(true)
   {
     digitalWrite(motorDirection_p,UP);
     digitalWrite(motorEn_p,HIGH);
