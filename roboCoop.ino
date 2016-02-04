@@ -14,7 +14,7 @@ int selectButton_p = 3;
 //outputs (to actuators)
 int solenoidEn_p = A2;
 int motorDirection_p = 5; //0 -> counter-clockwise, 1 -> clockwise
-int motorEn_p = 13;
+int motorEn_p = 4;
 
 //LCD pins
 int d4_p = 11;
