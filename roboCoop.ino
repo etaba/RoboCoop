@@ -14,7 +14,7 @@ int selectButton_p = 3;
 //outputs (to actuators)
 int solenoidEn_p = A2;
 int motorDirection_p = 5; //0 -> counter-clockwise, 1 -> clockwise
-int motorEn_p = 13;
+int motorEn_p = 4;
 
 //LCD pins
 int d4_p = 11;
@@ -78,23 +78,30 @@ void setup()
 
 void loop()
 {
+  /*
   if(true)
   {
-    digitalWrite(motorDirection_p,UP);
+    digitalWrite(motorDirection_p,HIGH);
+    digitalWrite(solenoidEn_p,HIGH);
     digitalWrite(motorEn_p,HIGH);
-    delay(1000);
+    delay(2000);
+    digitalWrite(motorEn_p,LOW);
+    digitalWrite(solenoidEn_p,LOW);
+
+    delay(3000);
+    
+    digitalWrite(motorDirection_p,LOW);
+    digitalWrite(solenoidEn_p,HIGH);
+    digitalWrite(motorEn_p,HIGH);
+    delay(2000);
+    digitalWrite(solenoidEn_p,LOW);
     digitalWrite(motorEn_p,LOW);
     
-    delay(5000);
+    delay(3000);
     
-    digitalWrite(motorDirection_p,DOWN);
-    digitalWrite(motorEn_p,HIGH);
-    delay(1000);
-    digitalWrite(motorEn_p,LOW);
-    
-    delay(10000);
   }
   else
+  */
   switch(machineState)
   {
     case READY:
@@ -191,7 +198,7 @@ void loop()
           break;
 
         case TIME_HOUR:
-          lcdShowTime("Time: ",closeAlarm,"SETTING HOUR");
+          lcdShowTime("Time: ",time,"SETTING HOUR");
           if (digitalRead(selectButton_p)==HIGH)
           {
             time.Hour += 1;
