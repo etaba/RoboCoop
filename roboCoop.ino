@@ -1,4 +1,4 @@
-//v1.0
+//v1.1
 
 #include <Time.h>
 #include <TimeLib.h>
@@ -105,22 +105,22 @@ void loop()
   switch(machineState)
   {
     case READY:
-      switchState = digitalRead(switch_p);
+      doorState = !digitalRead(doorStop_p); //open->HIGH, closed->LOW
+      switchState = digitalRead(switch_p); //on->HIGH, off->LOW
       breakTime(now(),time);
       lcdShowTime("Time: ",time, "");
-      if (switchState != doorState)
+      if (switchState != doorState) //door must be opened or closed
       {
         operateDoor(switchState);
-        doorState = switchState;
-        machineState = (switchState==1) ? OPEN : CLOSE;
+        machineState = (switchState==HIGH) ? OPENING : CLOSING;
       }
-      if(doorState==0 && checkAlarm(openAlarm))
+      if(doorState==LOW && checkAlarm(openAlarm))
       {
-        machineState = OPEN;
+        machineState = OPENING;
       }
-      if (doorState==1 && checkAlarm(closeAlarm))
+      else if (doorState==HIGH && checkAlarm(closeAlarm))
       {
-        machineState = CLOSE;
+        machineState = CLOSING;
       }
       if (digitalRead(setButton_p) == HIGH)
       {
@@ -228,14 +228,12 @@ void loop()
           break;
       }
       break;
-    case OPEN: //activate door
-      operateDoor(1);
-      doorState = 1;
+    case OPENING: //activate door
+      operateDoor(HIGH);
       machineState = READY;
       break;
-    case CLOSE:
-      operateDoor(0);
-      doorState = 0;
+    case CLOSING:
+      operateDoor(LOW);
       machineState = READY;
       break;
   }
@@ -274,18 +272,17 @@ String formatTime(int hour, int minute)
   return dispHour + ":" + dispMinute;
 }
 
-void operateDoor(int state) 
+void operateDoor(bool openDoor) 
 {
   digitalWrite(motorDirection_p, !state);
-  if (state) //opening door
+  if (openDoor) //opening door
   {
     digitalWrite(solenoidEn_p, HIGH);
-    delay(500); //needs calibration
-    //Serial.print("activating motor...");
+    delay(250); //TODO: calibrate
     digitalWrite(motorEn_p,HIGH);
-    delay (4500); //needs calibration
+    delay(1000); //TODO: calibrate
     digitalWrite(solenoidEn_p, LOW);
-    //delay (2500); //needs calibration
+    delay (4500); // TODO: calibrate
     digitalWrite(motorEn_p,LOW);
   }
   else //closing door
@@ -294,7 +291,6 @@ void operateDoor(int state)
     digitalWrite(solenoidEn_p,HIGH);
     while (!digitalRead(doorStop_p));
     digitalWrite(motorEn_p, LOW);
-    delay(300);
     digitalWrite(solenoidEn_p,LOW);
   }
 }
@@ -306,9 +302,4 @@ bool checkAlarm(TimeElements alarm)
  return (alarm.Hour == hour() && alarm.Minute == minute()) ? true : false; 
 }
 
-void pulse13()
-{
-  digitalWrite(13,HIGH);
-  delay(1000);
-  digitalWrite(13,LOW);
-}
+
