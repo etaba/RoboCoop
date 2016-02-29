@@ -43,6 +43,8 @@ set_time_state_t setState;
 
 void setup()
 {
+  pinMode(13,OUTPUT);
+  
   pinMode(motorDirection_p,OUTPUT);
   pinMode(motorEn_p, OUTPUT);
   pinMode(solenoidEn_p,OUTPUT);
@@ -71,49 +73,55 @@ void setup()
   closeAlarm.Hour = 18;
   closeAlarm.Minute = 30;
 
-  doorState = LOW;
   machineState = READY;
 }
 
+void mockDoor(bool openDoor)
+{
+  if (openDoor)
+  for(int i = 0; i < 5; i++)
+  {
+     digitalWrite(13,i%2);
+     delay(500);
+  }
+  else
+  for(int i = 0; i < 50; i++)
+  {
+     digitalWrite(13,i%2);
+     delay(100);
+  }
+}
 
 void loop()
 {
-  /*
   if(true)
   {
-    digitalWrite(motorDirection_p,HIGH);
-    digitalWrite(solenoidEn_p,HIGH);
-    digitalWrite(motorEn_p,HIGH);
-    delay(2000);
-    digitalWrite(motorEn_p,LOW);
-    digitalWrite(solenoidEn_p,LOW);
-
-    delay(3000);
-    
-    digitalWrite(motorDirection_p,LOW);
-    digitalWrite(solenoidEn_p,HIGH);
-    digitalWrite(motorEn_p,HIGH);
-    delay(2000);
-    digitalWrite(solenoidEn_p,LOW);
-    digitalWrite(motorEn_p,LOW);
-    
-    delay(3000);
-    
+    if(digitalRead(setButton_p))
+    {
+      digitalWrite(motorDirection_p,HIGH);
+      digitalWrite(motorEn_p,HIGH);
+    }
+    else if (digitalRead(selectButton_p))
+    {
+      digitalWrite(motorDirection_p,LOW);
+      digitalWrite(motorEn_p,HIGH);
+    }
+    else
+      digitalWrite(motorEn_p,LOW);
   }
   else
-  */
   switch(machineState)
   {
     case READY:
-      doorState = !digitalRead(doorStop_p); //open->HIGH, closed->LOW
-      switchState = digitalRead(switch_p); //on->HIGH, off->LOW
+      doorState = !digitalRead(doorStop_p); //LOW->open, HIGH->closed
+      switchState = digitalRead(switch_p); //HIGH->on, LOW->off
       breakTime(now(),time);
       lcdShowTime("Time: ",time, "");
       if (switchState != doorState) //door must be opened or closed
       {
-        operateDoor(switchState);
         machineState = (switchState==HIGH) ? OPENING : CLOSING;
       }
+      
       if(doorState==LOW && checkAlarm(openAlarm))
       {
         machineState = OPENING;
@@ -141,7 +149,10 @@ void loop()
           lcdShowTime("Open at: ",openAlarm, "SETTING HOUR");
           if (digitalRead(selectButton_p)==HIGH)
           {
-            openAlarm.Hour += 1;
+            if (openAlarm.Hour == 23)
+              openAlarm.Hour = 0;
+            else
+              openAlarm.Hour += 1;
             delay(250);
           }
           if (digitalRead(setButton_p))
@@ -156,7 +167,10 @@ void loop()
           lcdShowTime("Open at: ",openAlarm,"SETTING MINUTE");
           if (digitalRead(selectButton_p)==HIGH)
           {
-            openAlarm.Minute += 1;
+            if (openAlarm.Minute == 59)
+              openAlarm.Minute = 0;
+            else
+              openAlarm.Minute += 1;
             delay(250);
           }
           if (digitalRead(setButton_p))
@@ -171,7 +185,10 @@ void loop()
           lcdShowTime("Close at: ",closeAlarm,"SETTING HOUR");
           if (digitalRead(selectButton_p)==HIGH)
           {
-            closeAlarm.Hour += 1;
+            if (closeAlarm.Hour == 23)
+              closeAlarm.Hour = 0;
+            else
+              closeAlarm.Hour += 1;
             delay(250);
           }
           if (digitalRead(setButton_p))
@@ -186,7 +203,10 @@ void loop()
           lcdShowTime("Close at: ",closeAlarm,"SETTING MINUTE");
           if (digitalRead(selectButton_p)==HIGH)
           {
-            closeAlarm.Minute += 1;
+            if (closeAlarm.Minute == 59)
+              closeAlarm.Minute = 0;
+            else
+              closeAlarm.Minute += 1;
             delay(250);
           }
           if (digitalRead(setButton_p))
@@ -201,7 +221,10 @@ void loop()
           lcdShowTime("Time: ",time,"SETTING HOUR");
           if (digitalRead(selectButton_p)==HIGH)
           {
-            time.Hour += 1;
+            if (time.Hour == 23)
+              time.Hour = 0;
+            else
+              time.Hour += 1;
             delay(250);
           }
           if (digitalRead(setButton_p))
@@ -216,7 +239,10 @@ void loop()
           lcdShowTime("Time: ",time,"SETTING MINUTE");
           if (digitalRead(selectButton_p)==HIGH)
           {
-            time.Minute += 1;
+            if (time.Minute == 59)
+              time.Minute = 0;
+            else
+              time.Minute += 1;
             delay(250);
           }
           if (digitalRead(setButton_p))
@@ -237,6 +263,13 @@ void loop()
       machineState = READY;
       break;
   }
+}
+
+void lcdPrint(String message)
+{
+  lcd.clear();
+    lcd.begin(16, 2);
+    lcd.print(message);
 }
 
 void lcdShowTime(String prefix, TimeElements t, String details)
@@ -274,7 +307,8 @@ String formatTime(int hour, int minute)
 
 void operateDoor(bool openDoor) 
 {
-  digitalWrite(motorDirection_p, !state);
+  digitalWrite(13,HIGH);
+  digitalWrite(motorDirection_p, !openDoor);
   if (openDoor) //opening door
   {
     digitalWrite(solenoidEn_p, HIGH);
@@ -282,7 +316,7 @@ void operateDoor(bool openDoor)
     digitalWrite(motorEn_p,HIGH);
     delay(1000); //TODO: calibrate
     digitalWrite(solenoidEn_p, LOW);
-    delay (4500); // TODO: calibrate
+    delay (3300); // TODO: calibrate
     digitalWrite(motorEn_p,LOW);
   }
   else //closing door
@@ -293,6 +327,7 @@ void operateDoor(bool openDoor)
     digitalWrite(motorEn_p, LOW);
     digitalWrite(solenoidEn_p,LOW);
   }
+  digitalWrite(13,LOW);
 }
 
 

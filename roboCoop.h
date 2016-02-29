@@ -1,18 +1,12 @@
 #ifndef ROBOCOOP_H
 #define ROBOCOOP_H
 
-typedef enum dir {
-  UP,
-  DOWN
-} dir_t;
-
-
 
 typedef enum machine_state {
   READY,
   SET,
-  OPEN,
-  CLOSE
+  OPENING,
+  CLOSING
 } machine_state_t;
 
 typedef enum set_time_state {
