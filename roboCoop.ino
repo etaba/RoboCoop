@@ -31,6 +31,7 @@ String currScreen;
 //state variables
 int doorState; //0 -> closed, 1 -> open
 int switchState; //0 -> switch off, 1 -> switch on
+bool flipFlag; //To determine if the switch logic need to be reversed
 
 TimeElements time;
 TimeElements openAlarm;
@@ -73,6 +74,8 @@ void setup()
   closeAlarm.Hour = 18;
   closeAlarm.Minute = 30;
 
+  flipFlag = (digitalRead(switch_p) == digitalRead(doorStop_p)) ? true : false;
+
   machineState = READY;
 }
 
@@ -94,27 +97,16 @@ void mockDoor(bool openDoor)
 
 void loop()
 {
-  if(true)
+  if(false)
   {
-    if(digitalRead(setButton_p))
-    {
-      digitalWrite(motorDirection_p,HIGH);
-      digitalWrite(motorEn_p,HIGH);
-    }
-    else if (digitalRead(selectButton_p))
-    {
-      digitalWrite(motorDirection_p,LOW);
-      digitalWrite(motorEn_p,HIGH);
-    }
-    else
-      digitalWrite(motorEn_p,LOW);
+    
   }
   else
   switch(machineState)
   {
     case READY:
       doorState = !digitalRead(doorStop_p); //LOW->open, HIGH->closed
-      switchState = digitalRead(switch_p); //HIGH->on, LOW->off
+      switchState = digitalRead(switch_p) ^ flipFlag; //HIGH->on, LOW->off
       breakTime(now(),time);
       lcdShowTime("Time: ",time, "");
       if (switchState != doorState) //door must be opened or closed
@@ -261,6 +253,28 @@ void loop()
     case CLOSING:
       operateDoor(LOW);
       machineState = READY;
+      break;
+    case MANUAL: //manual operation of door
+      lcdPrint("MANUAL MODE");
+      int currSwitchState = digitalRead(switch_p);
+      if(currSwitchState != digitalRead(switch_p))
+      {
+        digitalWrite(motorDirection_p,HIGH);
+        digitalWrite(motorEn_p,HIGH);
+      }
+      else if (digitalRead(selectButton_p))
+      {
+        digitalWrite(motorDirection_p,LOW);
+        digitalWrite(motorEn_p,HIGH);
+      }
+      else
+        digitalWrite(motorEn_p,LOW);
+      if (digitalRead(setButton_p))
+      {
+        flipFlag = (digitalRead(switch_p) == digitalRead(doorStop_p)) ? true : false;
+        machineState = READY;
+        delay(500); 
+      }
       break;
   }
 }
