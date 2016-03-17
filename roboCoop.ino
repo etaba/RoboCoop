@@ -97,11 +97,17 @@ void mockDoor(bool openDoor)
 
 void loop()
 {
-  if(false)
-  {
-    
+  if(false){
+    while(digitalRead(switch_p))
+    {
+      digitalWrite(13,HIGH);
+      digitalWrite(solenoidEn_p,HIGH);
+    }
+    digitalWrite(13,LOW);
+      digitalWrite(solenoidEn_p,LOW);
   }
-  else
+  else{
+  int currSwitchState;
   switch(machineState)
   {
     case READY:
@@ -240,7 +246,9 @@ void loop()
           if (digitalRead(setButton_p))
           {
             setTime(makeTime(time));
-            machineState = READY;
+            currSwitchState = digitalRead(switch_p);
+            lcdPrint("MANUAL MODE");
+            machineState = MANUAL;
             delay(500); 
           }
           break;
@@ -255,20 +263,22 @@ void loop()
       machineState = READY;
       break;
     case MANUAL: //manual operation of door
-      lcdPrint("MANUAL MODE");
-      int currSwitchState = digitalRead(switch_p);
-      if(currSwitchState != digitalRead(switch_p))
+      while(currSwitchState != digitalRead(switch_p))
       {
         digitalWrite(motorDirection_p,HIGH);
         digitalWrite(motorEn_p,HIGH);
+        digitalWrite(solenoidEn_p,HIGH);
       }
-      else if (digitalRead(selectButton_p))
+      digitalWrite(solenoidEn_p,LOW);
+      digitalWrite(motorEn_p,LOW);
+      while(digitalRead(selectButton_p))
       {
         digitalWrite(motorDirection_p,LOW);
         digitalWrite(motorEn_p,HIGH);
+        digitalWrite(solenoidEn_p,HIGH);
       }
-      else
-        digitalWrite(motorEn_p,LOW);
+      digitalWrite(solenoidEn_p,LOW);
+      digitalWrite(motorEn_p,LOW);
       if (digitalRead(setButton_p))
       {
         flipFlag = (digitalRead(switch_p) == digitalRead(doorStop_p)) ? true : false;
@@ -276,6 +286,7 @@ void loop()
         delay(500); 
       }
       break;
+  }
   }
 }
 
