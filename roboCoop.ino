@@ -32,6 +32,8 @@ String currScreen;
 int doorState; //0 -> closed, 1 -> open
 int switchState; //0 -> switch off, 1 -> switch on
 bool flipFlag; //To determine if the switch logic need to be reversed
+int prevSwitchState; //To detect switch has been flipped
+int currSwitchState;
 
 TimeElements time;
 TimeElements openAlarm;
@@ -62,8 +64,8 @@ void setup()
   
   //DEFAULT time and alarms?
   time.Second = 0;
-  time.Minute = 34;
-  time.Hour = 5;
+  time.Minute = 0;
+  time.Hour = 12;
   time.Day = 1;
   time.Month = 1;
   time.Year = 46;
@@ -74,8 +76,8 @@ void setup()
   closeAlarm.Hour = 18;
   closeAlarm.Minute = 30;
 
-  flipFlag = (digitalRead(switch_p) == digitalRead(doorStop_p)) ? true : false;
-
+  flipFlag = digitalRead(switch_p) == digitalRead(doorStop_p);
+  prevSwitchState = digitalRead(switch_p);
   machineState = READY;
 }
 
@@ -107,19 +109,21 @@ void loop()
       digitalWrite(solenoidEn_p,LOW);
   }
   else{
-  int currSwitchState;
   switch(machineState)
   {
     case READY:
+      
       doorState = !digitalRead(doorStop_p); //LOW->open, HIGH->closed
-      switchState = digitalRead(switch_p) ^ flipFlag; //HIGH->on, LOW->off
+      currSwitchState = digitalRead(switch_p);
+      switchState =  currSwitchState ^ flipFlag; //HIGH->on, LOW->off
       breakTime(now(),time);
       lcdShowTime("Time: ",time, "");
-      if (switchState != doorState) //door must be opened or closed
+      if (currSwitchState != prevSwitchState &&
+          switchState != doorState) //door must be opened or closed
       {
         machineState = (switchState==HIGH) ? OPENING : CLOSING;
       }
-      
+      prevSwitchState = currSwitchState;
       if(doorState==LOW && checkAlarm(openAlarm))
       {
         machineState = OPENING;
@@ -332,6 +336,8 @@ String formatTime(int hour, int minute)
 
 void operateDoor(bool openDoor) 
 {
+  //mockDoor(openDoor);
+  //return;
   digitalWrite(13,HIGH);
   digitalWrite(motorDirection_p, !openDoor);
   if (openDoor) //opening door
@@ -341,14 +347,15 @@ void operateDoor(bool openDoor)
     digitalWrite(motorEn_p,HIGH);
     delay(1000); //TODO: calibrate
     digitalWrite(solenoidEn_p, LOW);
-    delay (3300); // TODO: calibrate
+    delay (1600); // TODO: calibrate
     digitalWrite(motorEn_p,LOW);
   }
   else //closing door
   {
+    time_t start = now();
     digitalWrite(motorEn_p, HIGH);
     digitalWrite(solenoidEn_p,HIGH);
-    while (!digitalRead(doorStop_p));
+    while (!digitalRead(doorStop_p) || now() - start > 2);
     digitalWrite(motorEn_p, LOW);
     digitalWrite(solenoidEn_p,LOW);
   }
