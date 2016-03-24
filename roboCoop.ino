@@ -1,4 +1,4 @@
-//v1.1
+//v2.0
 
 #include <Time.h>
 #include <TimeLib.h>
@@ -62,7 +62,7 @@ void setup()
   digitalWrite(solenoidEn_p,LOW);
   digitalWrite(rw_p,LOW);
   
-  //DEFAULT time and alarms?
+  //DEFAULT time and alarms
   time.Second = 0;
   time.Minute = 0;
   time.Hour = 12;
@@ -112,8 +112,7 @@ void loop()
   switch(machineState)
   {
     case READY:
-      
-      doorState = !digitalRead(doorStop_p); //LOW->open, HIGH->closed
+      doorState = !digitalRead(doorStop_p); //LOW->closed, HIGH->open
       currSwitchState = digitalRead(switch_p);
       switchState =  currSwitchState ^ flipFlag; //HIGH->on, LOW->off
       breakTime(now(),time);
@@ -127,10 +126,12 @@ void loop()
       if(doorState==LOW && checkAlarm(openAlarm))
       {
         machineState = OPENING;
+        flipFlag = !flipFlag;
       }
       else if (doorState==HIGH && checkAlarm(closeAlarm))
       {
         machineState = CLOSING;
+        flipFlag = !flipFlag;
       }
       if (digitalRead(setButton_p) == HIGH)
       {
@@ -140,6 +141,7 @@ void loop()
          delay(500);
       }
       break;
+
     case SET:
       if (now() - timeOut > 60)
       {
@@ -366,7 +368,7 @@ void operateDoor(bool openDoor)
 
 bool checkAlarm(TimeElements alarm)
 {
- return (alarm.Hour == hour() && alarm.Minute == minute()) ? true : false; 
+  return (alarm.Hour == hour() && alarm.Minute == minute()) ? true : false; 
 }
 
 
