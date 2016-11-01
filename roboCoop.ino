@@ -71,10 +71,10 @@ void setup()
   time.Year = 46;
   setTime(makeTime(time));
   
-  openAlarm.Hour = 8;
-  openAlarm.Minute = 0;
-  closeAlarm.Hour = 18;
-  closeAlarm.Minute = 30;
+  openAlarm.Hour = 12;
+  openAlarm.Minute = 01;
+  closeAlarm.Hour = 12;
+  closeAlarm.Minute = 02;
 
   flipFlag = digitalRead(switch_p) == digitalRead(doorStop_p);
   prevSwitchState = digitalRead(switch_p);
@@ -100,7 +100,7 @@ void mockDoor(bool openDoor)
 void loop()
 {
   if(false){
-    while(digitalRead(switch_p))
+    while(digitalRead(doorStop_p))
     {
       digitalWrite(13,HIGH);
       digitalWrite(solenoidEn_p,HIGH);
@@ -125,6 +125,9 @@ void loop()
       prevSwitchState = currSwitchState;
       if(doorState==LOW && checkAlarm(openAlarm))
       {
+        if(doorState==LOW)
+                digitalWrite(13,HIGH);
+
         machineState = OPENING;
         flipFlag = !flipFlag;
       }
@@ -340,35 +343,37 @@ void operateDoor(bool openDoor)
 {
   //mockDoor(openDoor);
   //return;
-  digitalWrite(13,HIGH);
+  //digitalWrite(13,HIGH);
+  time_t start = now();
   digitalWrite(motorDirection_p, !openDoor);
-  if (openDoor) //opening door
+  if (openDoor && digitalRead(doorStop_p)) //opening door
   {
     digitalWrite(solenoidEn_p, HIGH);
     delay(250); //TODO: calibrate
     digitalWrite(motorEn_p,HIGH);
-    delay(1000); //TODO: calibrate
-    digitalWrite(solenoidEn_p, LOW);
-    delay (1600); // TODO: calibrate
+    delay (2600); // TODO: calibrate
     digitalWrite(motorEn_p,LOW);
+    digitalWrite(solenoidEn_p, LOW);
   }
   else //closing door
   {
-    time_t start = now();
     digitalWrite(motorEn_p, HIGH);
     digitalWrite(solenoidEn_p,HIGH);
-    while (!digitalRead(doorStop_p) || now() - start > 2);
+    while (!digitalRead(doorStop_p) && now() - start < 5)//stop automatically after 2 sec
+        delay(1);
     digitalWrite(motorEn_p, LOW);
     digitalWrite(solenoidEn_p,LOW);
   }
   digitalWrite(13,LOW);
+  delay(1000);
 }
 
 
 
 bool checkAlarm(TimeElements alarm)
 {
-  return (alarm.Hour == hour() && alarm.Minute == minute()) ? true : false; 
+  return (alarm.Hour == hour() && alarm.Minute == minute() && second() == 0) ? true : false; 
 }
+
 
 
