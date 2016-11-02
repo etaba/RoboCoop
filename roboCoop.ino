@@ -31,6 +31,7 @@ String currScreen;
 //state variables
 int doorState; //0 -> closed, 1 -> open
 int switchState; //0 -> switch off, 1 -> switch on
+bool alarmState; //True -> alarm on
 bool flipFlag; //To determine if the switch logic need to be reversed
 int prevSwitchState; //To detect switch has been flipped
 int currSwitchState;
@@ -76,6 +77,7 @@ void setup()
   closeAlarm.Hour = 12;
   closeAlarm.Minute = 02;
 
+  alarmState = true;
   flipFlag = digitalRead(switch_p) == digitalRead(doorStop_p);
   prevSwitchState = digitalRead(switch_p);
   machineState = READY;
@@ -116,22 +118,19 @@ void loop()
       currSwitchState = digitalRead(switch_p);
       switchState =  currSwitchState ^ flipFlag; //HIGH->on, LOW->off
       breakTime(now(),time);
-      lcdShowTime("Time: ",time, "");
+      lcdShowTime("Time: ",time, (alarmState ? "Alarm On" : "Alarm Off"));
       if (currSwitchState != prevSwitchState &&
           switchState != doorState) //door must be opened or closed
       {
         machineState = (switchState==HIGH) ? OPENING : CLOSING;
       }
       prevSwitchState = currSwitchState;
-      if(doorState==LOW && checkAlarm(openAlarm))
+      if(alarmState && doorState==LOW && checkAlarm(openAlarm))
       {
-        if(doorState==LOW)
-                digitalWrite(13,HIGH);
-
         machineState = OPENING;
         flipFlag = !flipFlag;
       }
-      else if (doorState==HIGH && checkAlarm(closeAlarm))
+      else if (alarmState && doorState==HIGH && checkAlarm(closeAlarm))
       {
         machineState = CLOSING;
         flipFlag = !flipFlag;
@@ -142,6 +141,10 @@ void loop()
          setState = OPEN_HOUR;
          timeOut = now();
          delay(500);
+      }
+      if (digitalRead(selectButton_p) == HIGH) //toggle alarm
+      {
+        alarmState = !alarmState;
       }
       break;
 
@@ -256,8 +259,7 @@ void loop()
           {
             setTime(makeTime(time));
             currSwitchState = digitalRead(switch_p);
-            lcdPrint("MANUAL MODE");
-            machineState = MANUAL;
+            machineState = READY;
             delay(500); 
           }
           break;
