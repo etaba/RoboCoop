@@ -8,7 +8,7 @@ typedef enum machine_state {
   OPENING,
   CLOSING,
   MANUAL,
-  ERROR
+  ERROR_STATE
 } machine_state_t;
 
 typedef enum set_time_state {

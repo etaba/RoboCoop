@@ -270,14 +270,13 @@ void loop()
       machineState = READY;
       break;
     case CLOSING:
-      try
+      if (!operateDoor(LOW))
       {
-        operateDoor(LOW);
-        machineState = READY;
+        machineState = ERROR_STATE;
       }
-      catch(const std::runtime_error& e)
+      else
       {
-        machineState = ERROR;
+        machineState = READY;
       }
       break;
     case MANUAL: //manual operation of door
@@ -304,7 +303,7 @@ void loop()
         delay(500); 
       }
       break;
-    case ERROR: //error, to prompt user to reset system
+    case ERROR_STATE: //error, to prompt user to reset system
       lcdPrint("     ERROR!","RESET MANUALLY");
       delay (10000);
       break;
@@ -354,7 +353,7 @@ String formatTime(int hour, int minute)
   return dispHour + ":" + dispMinute;
 }
 
-void operateDoor(bool openDoor) 
+bool operateDoor(bool openDoor) 
 {
   //mockDoor(openDoor);
   //return;
@@ -378,8 +377,7 @@ void operateDoor(bool openDoor)
     {
         if (now() - start > 5) //something is blocking the door or messing with the microswitch
         {
-          throw std::runtime_error("Timeout occurred during door close routine");
-          break;
+          return false;
         }
         delay(1);
     }
@@ -388,6 +386,7 @@ void operateDoor(bool openDoor)
   }
   digitalWrite(13,LOW);
   delay(1000);
+  return true;
 }
 
 
