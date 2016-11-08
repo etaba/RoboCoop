@@ -270,8 +270,15 @@ void loop()
       machineState = READY;
       break;
     case CLOSING:
-      operateDoor(LOW);
-      machineState = READY;
+      try
+      {
+        operateDoor(LOW);
+        machineState = READY;
+      }
+      catch(const std::runtime_error& e)
+      {
+        machineState = ERROR;
+      }
       break;
     case MANUAL: //manual operation of door
       while(currSwitchState != digitalRead(switch_p))
@@ -296,6 +303,10 @@ void loop()
         machineState = READY;
         delay(500); 
       }
+      break;
+    case ERROR: //error, to prompt user to reset system
+      lcdPrint("ERROR! RESET MANUALLY");
+      delay (10000);
       break;
   }
   }
@@ -361,8 +372,15 @@ void operateDoor(bool openDoor)
   {
     digitalWrite(motorEn_p, HIGH);
     digitalWrite(solenoidEn_p,HIGH);
-    while (!digitalRead(doorStop_p) && now() - start < 5)//stop automatically after 2 sec
+    while (!digitalRead(doorStop_p))
+    {
+        if (now() - start > 5) //something is blocking the door or messing with the microswitch
+        {
+          throw std::runtime_error("Timeout occurred during door close routine");
+          break;
+        }
         delay(1);
+    }
     digitalWrite(motorEn_p, LOW);
     digitalWrite(solenoidEn_p,LOW);
   }
