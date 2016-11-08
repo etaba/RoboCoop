@@ -305,18 +305,20 @@ void loop()
       }
       break;
     case ERROR: //error, to prompt user to reset system
-      lcdPrint("ERROR! RESET MANUALLY");
+      lcdPrint("     ERROR!","RESET MANUALLY");
       delay (10000);
       break;
   }
   }
 }
 
-void lcdPrint(String message)
+void lcdPrint(String header, String sub)
 {
   lcd.clear();
-    lcd.begin(16, 2);
-    lcd.print(message);
+  lcd.begin(16, 2);
+  lcd.print(header);
+  lcd.setCursor(1,2);
+  lcd.print(sub);
 }
 
 void lcdShowTime(String prefix, TimeElements t, String details)
