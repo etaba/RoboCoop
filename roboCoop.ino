@@ -72,10 +72,10 @@ void setup()
   time.Year = 46;
   setTime(makeTime(time));
   
-  openAlarm.Hour = 12;
-  openAlarm.Minute = 01;
-  closeAlarm.Hour = 12;
-  closeAlarm.Minute = 02;
+  openAlarm.Hour = 6;
+  openAlarm.Minute = 54;
+  closeAlarm.Hour = 20;
+  closeAlarm.Minute = 0;
 
   alarmState = true;
   flipFlag = digitalRead(switch_p) == digitalRead(doorStop_p);
@@ -371,14 +371,14 @@ bool operateDoor(bool openDoor)
     digitalWrite(solenoidEn_p, HIGH);
     delay(250); //TODO: calibrate
     digitalWrite(motorEn_p,HIGH);
-    delay(500);
+    delay(1000);
     if (digitalRead(doorStop_p)) //error if microswitch still closed after opening door for 500ms
     {
       digitalWrite(motorEn_p, LOW);
       digitalWrite(solenoidEn_p,LOW);
       return false;
     }
-    delay (2100);
+    delay (1750 );
     digitalWrite(motorEn_p,LOW);
     digitalWrite(solenoidEn_p, LOW);
   }
