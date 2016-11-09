@@ -266,8 +266,14 @@ void loop()
       }
       break;
     case OPENING: //activate door
-      operateDoor(HIGH);
-      machineState = READY;
+      if (!operateDoor(HIGH))
+      {
+        machineState = ERROR_STATE;
+      }
+      else
+      {
+        machineState = READY;
+      }
       break;
     case CLOSING:
       if (!operateDoor(LOW))
@@ -365,7 +371,14 @@ bool operateDoor(bool openDoor)
     digitalWrite(solenoidEn_p, HIGH);
     delay(250); //TODO: calibrate
     digitalWrite(motorEn_p,HIGH);
-    delay (2600); // TODO: calibrate
+    delay(500);
+    if (digitalRead(doorStop_p)) //error if microswitch still closed after opening door for 500ms
+    {
+      digitalWrite(motorEn_p, LOW);
+      digitalWrite(solenoidEn_p,LOW);
+      return false;
+    }
+    delay (2100);
     digitalWrite(motorEn_p,LOW);
     digitalWrite(solenoidEn_p, LOW);
   }
@@ -375,8 +388,10 @@ bool operateDoor(bool openDoor)
     digitalWrite(solenoidEn_p,HIGH);
     while (!digitalRead(doorStop_p))
     {
-        if (now() - start > 5) //something is blocking the door or messing with the microswitch
+        if (now() - start > 3) //something is blocking the door or messing with the microswitch
         {
+          digitalWrite(motorEn_p, LOW);
+          digitalWrite(solenoidEn_p,LOW);
           return false;
         }
         delay(1);
