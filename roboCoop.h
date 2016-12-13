@@ -20,9 +20,4 @@ typedef enum set_time_state {
   TIME_MINUTE
 } set_time_state_t;
 
-typedef struct alarm {
-  int hour;
-  int minute;
-} alarm_s;
-
 #endif
