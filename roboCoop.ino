@@ -10,7 +10,7 @@
 
 //inputs (switches)
 int switch_p = A3; //D2
-int doorStop_p = A4; //D3
+int doorStop_p = A7; //D3
 int setButton_p = 2;
 int selectButton_p = 3;
 
@@ -62,29 +62,22 @@ void setup()
   pinMode(switch_p, INPUT);
   pinMode(setButton_p,INPUT);
   pinMode(selectButton_p,INPUT);
+  pinMode(doorStop_p,INPUT);
 
   digitalWrite(motorEn_p, LOW);
   digitalWrite(motorDirection_p,LOW);
   digitalWrite(solenoidEn_p,LOW);
   digitalWrite(rw_p,LOW);
   
-  //DEFAULT time and alarms
-  byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
-  second = 0;
-  minute = 0;
-  hour = 12;
-  day = 1;
-  month = 1;
-  year = 46;
-  setDS3231time(second, minute, hour, dayOfWeek, dayOfMonth, month, year);
-   
+  //DEFAULT time and alarms   
+  setCurrTime(12,0);
   openAlarm.Hour = 6;
-  openAlarm.Minute = 54;
+  openAlarm.Minute = 30;
   closeAlarm.Hour = 20;
   closeAlarm.Minute = 0;
 
   alarmState = true;
-  flipFlag = digitalRead(switch_p) == digitalRead(doorStop_p);
+  flipFlag = digitalRead(switch_p) == digitalRead2(doorStop_p);
   prevSwitchState = digitalRead(switch_p);
   machineState = READY;
 }
@@ -107,8 +100,9 @@ void mockDoor(bool openDoor)
 
 void loop()
 {
+  //for testing:
   if(false){
-    while(digitalRead(doorStop_p))
+    while(digitalRead2(doorStop_p))
     {
       digitalWrite(13,HIGH);
       digitalWrite(solenoidEn_p,HIGH);
@@ -120,11 +114,10 @@ void loop()
   switch(machineState)
   {
     case READY:
-      doorState = !digitalRead(doorStop_p); //LOW->closed, HIGH->open
+      doorState = !digitalRead2(doorStop_p); //LOW->closed, HIGH->open
       currSwitchState = digitalRead(switch_p);
       switchState =  currSwitchState ^ flipFlag; //HIGH->on, LOW->off
-      breakTime(now(),time);
-      lcdShowTime("Time: ",time, (alarmState ? "Alarm On" : "Alarm Off"));
+      lcdShowTime("Time: ", getCurrTime(), (alarmState ? "Alarm On" : "Alarm Off"));
       if (currSwitchState != prevSwitchState &&
           switchState != doorState) //door must be opened or closed
       {
@@ -234,41 +227,48 @@ void loop()
           break;
 
         case TIME_HOUR:
-          lcdShowTime("Time: ",time,"SETTING HOUR");
-          if (digitalRead(selectButton_p)==HIGH)
           {
-            if (time.Hour == 23)
-              time.Hour = 0;
-            else
-              time.Hour += 1;
-            delay(250);
-          }
-          if (digitalRead(setButton_p))
-          {
-            setState = TIME_MINUTE;
-            timeOut = now();
-            delay(500); 
+            TimeElements currTime = getCurrTime();
+            lcdShowTime("Time: ",currTime,"SETTING HOUR");
+            if (digitalRead(selectButton_p)==HIGH)
+            {
+              if (currTime.Hour == 23)
+                currTime.Hour = 0;
+              else
+                currTime.Hour += 1;
+              setCurrTime(currTime.Hour, currTime.Minute);
+              delay(250);
+            }
+            if (digitalRead(setButton_p))
+            {
+              setState = TIME_MINUTE;
+              timeOut = now();
+              delay(500); 
+            }
           }
           break;
 
         case TIME_MINUTE:
-          lcdShowTime("Time: ",time,"SETTING MINUTE");
+        {
+          TimeElements t = getCurrTime();
+          lcdShowTime("Time: ",t,"SETTING MINUTE");
           if (digitalRead(selectButton_p)==HIGH)
           {
-            if (time.Minute == 59)
-              time.Minute = 0;
+            if (t.Minute == 59)
+              t.Minute = 0;
             else
-              time.Minute += 1;
+              t.Minute += 1;
+            setCurrTime(t.Hour, t.Minute);
             delay(250);
           }
           if (digitalRead(setButton_p))
           {
-            setTime(makeTime(time));
             currSwitchState = digitalRead(switch_p);
             machineState = READY;
             delay(500); 
           }
-          break;
+        }
+        break;
       }
       break;
     case OPENING: //activate door
@@ -310,7 +310,7 @@ void loop()
       digitalWrite(motorEn_p,LOW);
       if (digitalRead(setButton_p))
       {
-        flipFlag = (digitalRead(switch_p) == digitalRead(doorStop_p)) ? true : false;
+        flipFlag = digitalRead(switch_p) == digitalRead2(doorStop_p);
         machineState = READY;
         delay(500); 
       }
@@ -334,9 +334,8 @@ void lcdPrint(String header, String sub)
 
 void lcdShowTime(String prefix, TimeElements t, String details)
 {
-  byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
-  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
-  String formattedTime = formatTime(int(hour),int(minute)); 
+  
+  String formattedTime = formatTime(t.Hour,t.Minute); 
   // Print a message to the LCD.
   if (currScreen != formattedTime + details)
   {
@@ -352,12 +351,12 @@ void lcdShowTime(String prefix, TimeElements t, String details)
   }
 }
 
-String formatTime(int hour, int minute)
+String formatTime(int t_hour, int t_minute)
 {
   String dispHour;
   String dispMinute;
-  dispHour = hour < 10 ? "0" + String(hour) : String(hour);
-  dispMinute = minute < 10 ? "0" + String(minute) : String(minute);
+  dispHour = t_hour < 10 ? "0" + String(t_hour) : String(t_hour);
+  dispMinute = t_minute < 10 ? "0" + String(t_minute) : String(t_minute);
   return dispHour + ":" + dispMinute;
 }
 
@@ -368,13 +367,13 @@ bool operateDoor(bool openDoor)
   //digitalWrite(13,HIGH);
   time_t start = now();
   digitalWrite(motorDirection_p, !openDoor);
-  if (openDoor && digitalRead(doorStop_p)) //opening door
+  if (openDoor && digitalRead2(doorStop_p)) //opening door
   {
     digitalWrite(solenoidEn_p, HIGH);
     delay(250); //TODO: calibrate
     digitalWrite(motorEn_p,HIGH);
     delay(1000);
-    if (digitalRead(doorStop_p)) //error if microswitch still closed after opening door for 500ms
+    if (digitalRead2(doorStop_p)) //error if microswitch still closed after opening door for 500ms
     {
       digitalWrite(motorEn_p, LOW);
       digitalWrite(solenoidEn_p,LOW);
@@ -388,7 +387,7 @@ bool operateDoor(bool openDoor)
   {
     digitalWrite(motorEn_p, HIGH);
     digitalWrite(solenoidEn_p,HIGH);
-    while (!digitalRead(doorStop_p))
+    while (!digitalRead2(doorStop_p))
     {
         if (now() - start > 3) //something is blocking the door or messing with the microswitch
         {
@@ -408,9 +407,9 @@ bool operateDoor(bool openDoor)
 
 bool checkAlarm(TimeElements alarm)
 {
-  byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
-  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
-  return (alarm.Hour == int(hour) && alarm.Minute == int(minute) && int(second) == 0) ? true : false; 
+  byte t_second, t_minute, t_hour, dayOfWeek, dayOfMonth, t_month, t_year;
+  readDS3231time(&t_second, &t_minute, &t_hour, &dayOfWeek, &dayOfMonth, &t_month, &t_year);
+  return (alarm.Hour == int(t_hour) && alarm.Minute == int(t_minute) && int(t_second) == 0) ? true : false; 
 }
 
 // Convert normal decimal numbers to binary coded decimal
@@ -424,69 +423,103 @@ byte bcdToDec(byte val)
   return( (val/16*10) + (val%16) );
 }
 
-void setDS3231time(byte second, byte minute, byte hour, byte dayOfWeek, byte
-dayOfMonth, byte month, byte year)
+void setDS3231time(byte t_second, byte t_minute, byte t_hour, byte dayOfWeek, byte
+dayOfMonth, byte t_month, byte t_year)
 {
   // sets time and date data to DS3231
   Wire.beginTransmission(DS3231_I2C_ADDRESS);
   Wire.write(0); // set next input to start at the seconds register
-  Wire.write(decToBcd(second)); // set seconds
-  Wire.write(decToBcd(minute)); // set minutes
-  Wire.write(decToBcd(hour)); // set hours
+  Wire.write(decToBcd(t_second)); // set seconds
+  Wire.write(decToBcd(t_minute)); // set minutes
+  Wire.write(decToBcd(t_hour)); // set hours
   Wire.write(decToBcd(dayOfWeek)); // set day of week (1=Sunday, 7=Saturday)
   Wire.write(decToBcd(dayOfMonth)); // set date (1 to 31)
-  Wire.write(decToBcd(month)); // set month
-  Wire.write(decToBcd(year)); // set year (0 to 99)
+  Wire.write(decToBcd(t_month)); // set t_month
+  Wire.write(decToBcd(t_year)); // set t_year (0 to 99)
   Wire.endTransmission();
 }
-void readDS3231time(byte *second,
-byte *minute,
-byte *hour,
+void readDS3231time(byte *t_second,
+byte *t_minute,
+byte *t_hour,
 byte *dayOfWeek,
 byte *dayOfMonth,
-byte *month,
-byte *year)
+byte *t_month,
+byte *t_year)
 {
   Wire.beginTransmission(DS3231_I2C_ADDRESS);
   Wire.write(0); // set DS3231 register pointer to 00h
   Wire.endTransmission();
   Wire.requestFrom(DS3231_I2C_ADDRESS, 7);
   // request seven bytes of data from DS3231 starting from register 00h
-  *second = bcdToDec(Wire.read() & 0x7f);
-  *minute = bcdToDec(Wire.read());
-  *hour = bcdToDec(Wire.read() & 0x3f);
+  *t_second = bcdToDec(Wire.read() & 0x7f);
+  *t_minute = bcdToDec(Wire.read());
+  *t_hour = bcdToDec(Wire.read() & 0x3f);
   *dayOfWeek = bcdToDec(Wire.read());
   *dayOfMonth = bcdToDec(Wire.read());
-  *month = bcdToDec(Wire.read());
-  *year = bcdToDec(Wire.read());
+  *t_month = bcdToDec(Wire.read());
+  *t_year = bcdToDec(Wire.read());
+
 }
+void setCurrTime(int h, int m)
+{
+  byte t_second, t_minute, t_hour, dayOfWeek, dayOfMonth, t_month, t_year;
+  t_second = 0;
+  t_minute = m;
+  t_hour = h;
+  dayOfWeek = 1;
+  dayOfMonth = 1;
+  t_month = 1;
+  t_year = 46;
+  setDS3231time(t_second, t_minute, t_hour, dayOfWeek, dayOfMonth, t_month, t_year);
+}
+TimeElements getCurrTime()
+{
+  byte t_second, t_minute, t_hour, dayOfWeek, dayOfMonth, t_month, t_year;
+  readDS3231time(&t_second, &t_minute, &t_hour, &dayOfWeek, &dayOfMonth, &t_month, &t_year);
+  
+  TimeElements currTime;
+  currTime.Hour = (int)t_hour;
+  currTime.Minute = (int)t_minute;
+  return currTime;
+}
+
+//Below is ugliest hack ive written. 
+//I'm ashamed of it and it keeps me up at night, but i was too lazy to rewire
+//the reed switch to a digital pin. 
+//My deepest apologies to anyone that has the misfortune of seeing this
+bool digitalRead2(int pin)
+{
+  int analogV = analogRead(pin);
+  return analogV > 900 ? true : false;
+}
+/*
 void displayTime()
 {
-  byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
+  byte t_second, t_minute, t_hour, dayOfWeek, dayOfMonth, t_month, t_year;
   // retrieve data from DS3231
-  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month,
-  &year);
+  readDS3231time(&t_second, &t_minute, &t_hour, &dayOfWeek, &dayOfMonth, &t_month,
+  &t_year);
   // send it to the serial monitor
-  Serial.print(hour, DEC);
+  Serial.print(t_hour, DEC);
   // convert the byte variable to a decimal number when displayed
   Serial.print(":");
-  if (minute<10)
+  if (t_minute<10)
   {
     Serial.print("0");
   }
-  Serial.print(minute, DEC);
+  Serial.print(t_minute, DEC);
   Serial.print(":");
-  if (second<10)
+  if (t_second<10)
   {
     Serial.print("0");
   }
-  Serial.print(second, DEC);
+  Serial.print(t_second, DEC);
   Serial.print(" ");
   Serial.print(dayOfMonth, DEC);
   Serial.print("/");
-  Serial.print(month, DEC);
+  Serial.print(t_month, DEC);
   Serial.print("/");
-  Serial.print(year, DEC);
+  Serial.print(t_year, DEC);
   Serial.print(" Day of week: ");
   switch(dayOfWeek){
   case 1:
@@ -512,3 +545,4 @@ void displayTime()
     break;
   }
 }
+*/
